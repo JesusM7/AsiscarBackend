@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//Modelo inicial solicitud SolicitudDelivery
+
+model User {
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  username    String
+  last_name   String?
+  phone       String
+  birth_date  DateTime?
+  user_type   String
+  password    String
+  createdAt   DateTime @default(now())
+  
+  // Relación con servicios
+  servicios   Servicio[]
+}
+
+model Usuario {
+  id          Int                 @id @default(autoincrement())
+  nombre      String
+  email       String              @unique
+  ubicacion   String?             // dirección textual
+  solicitudes SolicitudDelivery[] // Relación uno a muchos
+}
+
+model Proveedor {
+  id          Int                 @id @default(autoincrement())
+  nombre      String
+  tipo        String              // grua | mecanico | tienda
+  latitud     Float
+  longitud    Float
+  radioKm     Float               // radio de cobertura
+  disponible  Boolean             @default(true)
+  solicitudes SolicitudDelivery[]
+}
+
+model SolicitudDelivery {
+  id          Int       @id @default(autoincrement())
+  tipoServicio String   // grua | mecanico | repuesto
+  latitud     Float
+  longitud    Float
+  estado      String    @default("pendiente")
+  fecha       DateTime  @default(now())
+  clienteId   Int
+  proveedorId Int?
+
+  cliente     Usuario   @relation(fields: [clienteId], references: [id])
+  proveedor   Proveedor? @relation(fields: [proveedorId], references: [id])
+}
+
+// Nuevo modelo para servicios de grúa y mecánico a domicilio
+model Servicio {
+  id                Int      @id @default(autoincrement())
+  
+  // Relación con el usuario que creó el servicio
+  userId            Int      // ID del usuario que creó el servicio
+  
+  // Información del servicio
+  tipoServicio      String   // "grua" | "mecanico"
+  titulo            String
+  descripcion       String
+  precio            Float
+  
+  // Información personal del proveedor
+  nombreProveedor   String
+  telefonoProveedor String
+  emailProveedor    String
+  cedulaProveedor   String
+  
+  // Geolocalización
+  latitud           Float
+  longitud          Float
+  direccion         String
+  ciudad            String
+  cobertura         Float    // radio de cobertura en km
+  
+  // Imagen del servicio
+  fotoUrl           String?  // URL de la imagen
+  
+  // Estado y disponibilidad
+  disponible        Boolean  @default(true)
+  verificado        Boolean  @default(false)
+  activo            Boolean  @default(true)
+  
+  // Información adicional
+  horarioInicio     String?  // "08:00"
+  horarioFin        String?  // "18:00"
+  diasDisponibles   String?  // "L,M,X,J,V,S,D"
+  
+  // Metadatos
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relación con el modelo User
+  user              User     @relation(fields: [userId], references: [id])
+  
+  @@map("servicios")
+}
