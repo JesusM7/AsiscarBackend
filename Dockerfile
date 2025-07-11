@@ -15,7 +15,6 @@ COPY . .
 # Set environment variables
 ENV NODE_ENV=production
 ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL}
 ENV NODE_OPTIONS="--openssl-legacy-provider"
 
 # Install dependencies with OpenSSL 3 support
