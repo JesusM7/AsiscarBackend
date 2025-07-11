@@ -19,15 +19,9 @@ ENV NODE_OPTIONS="--openssl-legacy-provider"
 
 # Install dependencies with OpenSSL 3 support
 RUN npm install --build-from-source --openssl-legacy-provider
-
-# Generate Prisma client
-RUN npx prisma generate
-
-# Run migrations
-RUN npx prisma migrate dev
-
+RUN npx prisma migrate dev --name init
 # Expose port 3000
 EXPOSE 3000
 
 # Start the application
-CMD ["node", "index.js"]
+CMD ["sh", "-c", "npm run db:deploy && npm run dev"]
