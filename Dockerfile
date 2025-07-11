@@ -19,7 +19,7 @@ ENV NODE_OPTIONS="--openssl-legacy-provider"
 
 # Install dependencies with OpenSSL 3 support
 RUN npm install --build-from-source --openssl-legacy-provider
-RUN npx prisma migrate dev --name init
+# RUN npx prisma migrate dev --name init
 # Expose port 3000
 EXPOSE 3000
 
