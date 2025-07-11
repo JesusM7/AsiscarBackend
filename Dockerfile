@@ -23,6 +23,9 @@ RUN npm install --build-from-source --openssl-legacy-provider
 # Generate Prisma client
 RUN npx prisma generate
 
+# Run migrations
+RUN npx prisma migrate dev
+
 # Expose port 3000
 EXPOSE 3000
 
