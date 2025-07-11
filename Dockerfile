@@ -30,4 +30,4 @@ RUN npx prisma migrate dev
 EXPOSE 3000
 
 # Start the application
-CMD ["./entrypoint.sh"]
+CMD ["node", "index.js"]
