@@ -10,7 +10,6 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Copy rest of the application code
 COPY . .
 
 # Set environment variables
