@@ -5,6 +5,11 @@ const { validateName, validateLastName, validateEmail, validatePhone } = require
 const router = express.Router();
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+require('dotenv').config();
+
+const frontendURL = process.env.FRONTEND_URL;
+const backendURL = process.env.BACKEND_URL;
+
 
 
 const prisma = new PrismaClient();
@@ -123,13 +128,31 @@ router.post('/register', async (req, res) => {
       },
     });
 
-    const urlVerificacion = `http://localhost:3000/api/verificar/${tokenVerificacion}`;
+    // const urlVerificacion = `${frontendURL}/${tokenVerificacion}`;
+    const urlVerificacion = `${backendURL}/api/verificar/${tokenVerificacion}`;
 
     await transporter.sendMail({
       to: email,
       subject: 'Verifica tu cuenta',
-      html: `<p>Hola ${username}, haz clic en el siguiente enlace para verificar tu cuenta:</p>
-         <a href="${urlVerificacion}">Verificar ahora</a>`,
+      html: `<p>¡Hola ${username}! 👋</p>
+
+            <p>Gracias por registrarte en <strong>Asiscar</strong>, tu aliado confiable en servicios de grúa, asistencia mecánica y soluciones viales en los momentos más críticos. Estamos comprometidos con brindarte atención segura, rápida y personalizada para que nunca te quedes varado sin apoyo.</p>
+
+            <p>Para comenzar a disfrutar de todos nuestros servicios, necesitamos que verifiques tu cuenta. Esto nos permite proteger tu información y garantizar una experiencia más segura para todos nuestros usuarios.</p>
+
+            <p>Haz clic en el siguiente enlace para confirmar tu correo electrónico y activar tu cuenta:</p>
+
+            <p><a href="${urlVerificacion}" style="color: #0057D8; font-weight: bold;">✅ Verificar mi cuenta</a></p>
+
+            <p>Este enlace estará disponible durante un tiempo limitado, así que te recomendamos verificar lo antes posible.</p>
+
+            <p>Una vez que tu cuenta esté activa, podrás solicitar grúas, contactar mecánicos cercanos y recibir asistencia técnica desde cualquier lugar, todo desde nuestra plataforma.</p>
+
+            <p>Si no solicitaste este registro, puedes ignorar este mensaje. Si tienes dudas o necesitas soporte adicional, nuestro equipo está disponible para ayudarte en <a href="mailto:soporte@asiscar.com">soporte@asiscar.com</a>.</p>
+
+            <p>Gracias por confiar en <strong>Asiscar</strong> — estamos aquí para ti, siempre que lo necesites. 🚗🛠️</p>
+
+            <p>El equipo de Asiscar</p>`,
 });
 
     return res.status(201).json({ message: 'Usuario registrado con éxito' });
@@ -156,7 +179,9 @@ router.get('/verificar/:token', async (req, res) => {
     },
   });
 
-  res.send('¡Cuenta verificada con éxito!');
+  res.redirect(`${frontendURL}/cuenta-verificada`);
+  // Redirigir a una página de éxito en el frontend
+
 });
 
 // NUEVO ENDPOINT: Registro de administradores (solo para admins)
@@ -332,7 +357,7 @@ router.post('/resend-verification', async (req, res) => {
       data: { verificationToken: nuevoToken },
     });
 
-    const urlVerificacion = `http://localhost:3000/api/verificar/${nuevoToken}`;
+    const urlVerificacion = `${frontendURL}/api/verificar/${nuevoToken}`;
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -345,8 +370,18 @@ router.post('/resend-verification', async (req, res) => {
     await transporter.sendMail({
       to: email,
       subject: 'Nuevo enlace de verificación',
-      html: `<p>Hola ${user.username}, aquí tienes un nuevo enlace para verificar tu cuenta:</p>
-             <a href="${urlVerificacion}">Verificar ahora</a>`,
+      html: `Hola ${user.username},<br><br>
+            <p>Haz clic en el siguiente botón para confirmar tu correo electrónico y completar el proceso:</p>
+
+            <p><a href="${urlVerificacion}" style="background-color: #D32F2F; color: white; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">✅ Verificar cuenta</a></p>
+
+            <p>Este enlace estará disponible por tiempo limitado. Verificar tu cuenta te permite solicitar asistencia mecánica, pedir grúas y acceder a todos nuestros servicios desde la plataforma de Asiscar.</p>
+
+            <p>¿No solicitaste esta verificación? Puedes ignorar este mensaje. Si necesitas ayuda, estamos para ti en <a href="mailto:soporte@asiscar.com">soporte@asiscar.com</a>.</p>
+
+            <p>Gracias por confiar en Asiscar. Estamos contigo en cada kilómetro 🚗🛠️</p>
+
+            <p>— El equipo de Asiscar</p>`,
     });
 
     res.json({ message: 'Se ha enviado un nuevo enlace de verificación a tu correo' });
