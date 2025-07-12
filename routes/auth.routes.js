@@ -3,7 +3,8 @@ const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { validateName, validateLastName, validateEmail, validatePhone } = require('../utils/validation');
 const router = express.Router();
-
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 
 const prisma = new PrismaClient();
@@ -96,6 +97,10 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generar token de verificación (opcional, si se implementa verificación por email)
+
+    const tokenVerificacion = crypto.randomBytes(32).toString('hex');
+
     const nuevoUsuario = await prisma.user.create({
       data: {
         email: email.trim().toLowerCase(),
@@ -105,14 +110,53 @@ router.post('/register', async (req, res) => {
         birth_date: birth_date ? new Date(birth_date) : null,
         user_type,
         password: hashedPassword,
+        isVerified: false, // Por defecto, el usuario no está verificado
+        verificationToken: tokenVerificacion, // Guardar el token de verificación
       },
     });
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // o tu proveedor SMTP
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const urlVerificacion = `http://localhost:3000/api/verificar/${tokenVerificacion}`;
+
+    await transporter.sendMail({
+      to: email,
+      subject: 'Verifica tu cuenta',
+      html: `<p>Hola ${username}, haz clic en el siguiente enlace para verificar tu cuenta:</p>
+         <a href="${urlVerificacion}">Verificar ahora</a>`,
+});
 
     return res.status(201).json({ message: 'Usuario registrado con éxito' });
   } catch (error) {
     console.error('Error al registrar:', error);
     return res.status(500).json({message: error.message || 'Error en el servidor' });
   }
+});
+
+router.get('/verificar/:token', async (req, res) => {
+  const { token } = req.params;
+
+  const user = await prisma.user.findUnique({
+    where: { verificationToken: token },
+  });
+
+  if (!user) return res.status(400).send('Token inválido');
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      isVerified: true,
+      verificationToken: null,
+    },
+  });
+
+  res.send('¡Cuenta verificada con éxito!');
 });
 
 // NUEVO ENDPOINT: Registro de administradores (solo para admins)
@@ -244,6 +288,10 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Contraseña incorrecta' });
     }
 
+    if (!user.isVerified) {
+      return res.status(403).json({ message: 'Tu cuenta no está verificada. Revisa tu correo electrónico.' });
+}
+
     const token = jwt.sign(
       { id: user.id, email: user.email, user_type: user.user_type, username: user.username },
       SECRET,
@@ -258,6 +306,53 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Error al iniciar sesión:', error);
     return res.status(500).json({ message: 'Error en el servidor' });
+  }
+});
+
+// Reenviar enlace de verificación
+
+router.post('/resend-verification', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'No se encontró ningún usuario con ese correo' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Tu cuenta ya está verificada' });
+    }
+
+    const nuevoToken = crypto.randomBytes(32).toString('hex');
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verificationToken: nuevoToken },
+    });
+
+    const urlVerificacion = `http://localhost:3000/api/verificar/${nuevoToken}`;
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      to: email,
+      subject: 'Nuevo enlace de verificación',
+      html: `<p>Hola ${user.username}, aquí tienes un nuevo enlace para verificar tu cuenta:</p>
+             <a href="${urlVerificacion}">Verificar ahora</a>`,
+    });
+
+    res.json({ message: 'Se ha enviado un nuevo enlace de verificación a tu correo' });
+  } catch (error) {
+    console.error('Error reenviando verificación:', error);
+    res.status(500).json({ message: 'Error al reenviar el enlace de verificación' });
   }
 });
 

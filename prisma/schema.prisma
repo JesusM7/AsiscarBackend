@@ -24,6 +24,8 @@ model User {
   birth_date  DateTime?
   user_type   String
   password    String
+  isVerified  Boolean  @default(false)
+  verificationToken  String?  @unique
   createdAt   DateTime @default(now())
   
   // Relación con servicios
