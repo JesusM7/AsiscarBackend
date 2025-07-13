@@ -32,14 +32,6 @@ model User {
   servicios   Servicio[]
 }
 
-model Usuario {
-  id          Int                 @id @default(autoincrement())
-  nombre      String
-  email       String              @unique
-  ubicacion   String?             // dirección textual
-  solicitudes SolicitudDelivery[] // Relación uno a muchos
-}
-
 model Proveedor {
   id          Int                 @id @default(autoincrement())
   nombre      String
@@ -61,7 +53,6 @@ model SolicitudDelivery {
   clienteId   Int
   proveedorId Int?
 
-  cliente     Usuario   @relation(fields: [clienteId], references: [id])
   proveedor   Proveedor? @relation(fields: [proveedorId], references: [id])
 }
 
